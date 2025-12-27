@@ -1,0 +1,15 @@
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\dto\CreateMachineRequest.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\dto\SimulationState.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\SimulationApplication.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\service\SimulationService.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\pattern\snapshot\SimulationSnapshot.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\controller\SimulationController.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\dto\CreateQueueRequest.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\pattern\observer\QueueSubject.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\config\WebConfig.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\pattern\snapshot\SnapshotManager.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\model\Machine.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\model\Product.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\model\ProductQueue.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\pattern\observer\QueueObserver.java
+C:\Users\KimoStore\.gemini\antigravity\scratch\producer-consumer-simulation\backend\src\main\java\com\simulation\dto\ConnectionRequest.java
