@@ -463,16 +463,3 @@ After stopping a simulation:
 
 6. **Throttled State Updates**: 100ms interval prevents flooding the client while maintaining responsiveness
 
----
-
-## 👥 Team
-
-- Assignment for CSE 223: Programming 2
-- Alexandria University, Faculty of Engineering
-- Computer and Systems Engineering Department
-
----
-
-## 📄 License
-
-This project is for educational purposes.
