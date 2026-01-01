@@ -14,11 +14,12 @@ import {
 import { QueueNodeComponent } from '../queue-node/queue-node.component';
 import { MachineNodeComponent } from '../machine-node/machine-node.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
+import { MachineEditorComponent } from '../machine-editor/machine-editor.component';
 
 @Component({
     selector: 'app-simulation-board',
     standalone: true,
-    imports: [CommonModule, QueueNodeComponent, MachineNodeComponent, ControlPanelComponent],
+    imports: [CommonModule, QueueNodeComponent, MachineNodeComponent, ControlPanelComponent, MachineEditorComponent],
     template: `
     <div class="simulation-container">
       <app-control-panel
@@ -37,11 +38,14 @@ import { ControlPanelComponent } from '../control-panel/control-panel.component'
         (toggleConnectionMode)="toggleConnectionMode()"
         (start)="startSimulation()"
         (stop)="stopSimulation()"
+        (reset)="resetSimulation()"
         (clear)="clearBoard()"
         (startReplay)="startReplay()"
         (stopReplay)="stopReplay()"
         (updateInputRate)="updateInputRate($event)"
         (loadExample)="loadExample()"
+        (saveConfig)="saveConfiguration()"
+        (loadConfig)="loadConfiguration($event)"
       ></app-control-panel>
       
       <div 
@@ -120,6 +124,14 @@ import { ControlPanelComponent } from '../control-panel/control-panel.component'
           <p class="hint">Use the control panel on the left to get started</p>
         </div>
       </div>
+      
+      <!-- Machine Editor Modal -->
+      <app-machine-editor
+        *ngIf="editingMachine"
+        [machine]="editingMachine"
+        (save)="onMachineEditorSave($event)"
+        (cancel)="onMachineEditorCancel()"
+      ></app-machine-editor>
     </div>
   `,
     styles: [`
@@ -241,6 +253,9 @@ export class SimulationBoardComponent implements OnInit, OnDestroy {
 
     // Selected node
     selectedNodeId: string | null = null;
+    
+    // Machine being edited
+    editingMachine: MachineState | null = null;
 
     // Input queue tracking
     private inputQueueId: string | null = null;
@@ -387,7 +402,20 @@ export class SimulationBoardComponent implements OnInit, OnDestroy {
     }
 
     onMachineDoubleClick(machine: MachineState): void {
-        // Could open settings dialog
+        if (!this.state?.running) {
+            this.editingMachine = machine;
+        }
+    }
+
+    onMachineEditorSave(settings: { minServiceTime: number; maxServiceTime: number; name: string }): void {
+        if (this.editingMachine) {
+            this.simulationService.updateMachineSettings(this.editingMachine.id, settings).subscribe();
+            this.editingMachine = null;
+        }
+    }
+
+    onMachineEditorCancel(): void {
+        this.editingMachine = null;
     }
 
     onMachineConnectionPoint(event: { machine: MachineState, type: 'input' | 'output' }): void {
@@ -512,6 +540,10 @@ export class SimulationBoardComponent implements OnInit, OnDestroy {
         this.simulationService.stopSimulation().subscribe();
     }
 
+    resetSimulation(): void {
+        this.simulationService.resetSimulation().subscribe();
+    }
+
     clearBoard(): void {
         this.simulationService.clearBoard().subscribe();
         this.queueCounter = 0;
@@ -533,6 +565,25 @@ export class SimulationBoardComponent implements OnInit, OnDestroy {
 
     loadExample(): void {
         this.simulationService.loadExample().subscribe();
+    }
+
+    saveConfiguration(): void {
+        this.simulationService.exportConfig().subscribe(config => {
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `simulation-config-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    loadConfiguration(config: any): void {
+        this.simulationService.importConfig(config).subscribe(() => {
+            this.queueCounter = 0;
+            this.machineCounter = 0;
+        });
     }
 
     // ==================== Helpers ====================

@@ -71,6 +71,15 @@ import { FormsModule } from '@angular/forms';
             Stop
           </button>
           <button 
+            class="btn btn-reload" 
+            (click)="onReset()"
+            [disabled]="isRunning || !canStart"
+            title="Reset simulation - restart without clearing machines"
+          >
+            <span class="btn-icon">🔄</span>
+            Reload
+          </button>
+          <button 
             class="btn btn-warning" 
             (click)="onClear()"
             [disabled]="isRunning"
@@ -168,6 +177,35 @@ import { FormsModule } from '@angular/forms';
         </div>
       </div>
       
+      <div class="panel-section">
+        <h3>Save / Load</h3>
+        <div class="button-group">
+          <button 
+            class="btn btn-save" 
+            (click)="onSaveConfig()"
+            [disabled]="isRunning || queueCount === 0"
+          >
+            <span class="btn-icon">💾</span>
+            Save Config
+          </button>
+          <button 
+            class="btn btn-load" 
+            (click)="fileInput.click()"
+            [disabled]="isRunning"
+          >
+            <span class="btn-icon">📂</span>
+            Load Config
+          </button>
+          <input 
+            type="file" 
+            #fileInput 
+            hidden 
+            accept=".json"
+            (change)="onLoadConfig($event)"
+          />
+        </div>
+      </div>
+      
       <div class="panel-section instructions">
         <h3>Instructions</h3>
         <ul>
@@ -175,6 +213,7 @@ import { FormsModule } from '@angular/forms';
           <li>Connect them using connection points</li>
           <li>First queue auto-becomes input queue</li>
           <li>Double-click a queue to set as input</li>
+          <li>Double-click a machine to edit settings</li>
           <li>Products flow from input → machines → queues</li>
           <li>Press Delete to remove selected node</li>
         </ul>
@@ -318,6 +357,15 @@ import { FormsModule } from '@angular/forms';
       background: linear-gradient(135deg, #fb923c, #f97316);
     }
     
+    .btn-reload {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    
+    .btn-reload:hover:not(:disabled) {
+      background: linear-gradient(135deg, #34d399, #10b981);
+    }
+    
     .btn-replay {
       background: linear-gradient(135deg, #06b6d4, #0891b2);
       color: white;
@@ -349,6 +397,24 @@ import { FormsModule } from '@angular/forms';
     .btn-example:hover:not(:disabled) {
       background: linear-gradient(135deg, #a78bfa, #8b5cf6);
       transform: translateY(-1px);
+    }
+    
+    .btn-save {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+    }
+    
+    .btn-save:hover:not(:disabled) {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    }
+    
+    .btn-load {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white;
+    }
+    
+    .btn-load:hover:not(:disabled) {
+      background: linear-gradient(135deg, #fb923c, #f97316);
     }
     
     .hint {
@@ -494,11 +560,14 @@ export class ControlPanelComponent {
   @Output() toggleConnectionMode = new EventEmitter<void>();
   @Output() start = new EventEmitter<void>();
   @Output() stop = new EventEmitter<void>();
+  @Output() reset = new EventEmitter<void>();
   @Output() clear = new EventEmitter<void>();
   @Output() startReplay = new EventEmitter<void>();
   @Output() stopReplay = new EventEmitter<void>();
   @Output() updateInputRate = new EventEmitter<{ min: number, max: number }>();
   @Output() loadExample = new EventEmitter<void>();
+  @Output() saveConfig = new EventEmitter<void>();
+  @Output() loadConfig = new EventEmitter<any>();
 
   minInputRate = 500;
   maxInputRate = 2000;
@@ -523,6 +592,10 @@ export class ControlPanelComponent {
     this.stop.emit();
   }
 
+  onReset(): void {
+    this.reset.emit();
+  }
+
   onClear(): void {
     this.clear.emit();
   }
@@ -542,4 +615,28 @@ export class ControlPanelComponent {
   onLoadExample(): void {
     this.loadExample.emit();
   }
+
+  onSaveConfig(): void {
+    this.saveConfig.emit();
+  }
+
+  onLoadConfig(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const config = JSON.parse(e.target?.result as string);
+          this.loadConfig.emit(config);
+        } catch (err) {
+          console.error('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+      // Reset file input so the same file can be loaded again
+      input.value = '';
+    }
+  }
 }
+

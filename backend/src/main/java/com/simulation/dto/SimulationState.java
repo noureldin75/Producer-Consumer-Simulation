@@ -35,6 +35,8 @@ public class SimulationState {
         state.x = queue.getX();
         state.y = queue.getY();
         state.size = queue.getSize();
+        state.maxCapacity = queue.getMaxCapacity();
+        state.isFull = queue.isFull();
         state.products = new ArrayList<>();
         for (Product p : queue.getProductsList()) {
             ProductState ps = new ProductState();
@@ -57,6 +59,8 @@ public class SimulationState {
         state.inputQueueId = machine.getInputQueueId();
         state.outputQueueId = machine.getOutputQueueId();
         state.productsProcessed = machine.getProductsProcessed();
+        state.minServiceTime = machine.getMinServiceTime();
+        state.maxServiceTime = machine.getMaxServiceTime();
         if (machine.getCurrentProduct() != null) {
             state.currentProductId = machine.getCurrentProduct().getId();
         }
@@ -153,6 +157,8 @@ public class SimulationState {
         public double x;
         public double y;
         public int size;
+        public int maxCapacity;
+        public boolean isFull;
         public List<ProductState> products;
     }
 
@@ -168,6 +174,8 @@ public class SimulationState {
         public String outputQueueId;
         public String currentProductId;
         public int productsProcessed;
+        public int minServiceTime;
+        public int maxServiceTime;
     }
 
     public static class ConnectionState {

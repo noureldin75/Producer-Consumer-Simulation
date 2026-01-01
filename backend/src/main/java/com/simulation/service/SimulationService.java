@@ -254,6 +254,27 @@ public class SimulationService implements Machine.MachineEventListener {
     }
 
     /**
+     * Update machine settings (service times and optionally name)
+     */
+    public boolean updateMachineSettings(String id, Integer minServiceTime, Integer maxServiceTime, String name) {
+        Machine machine = machines.get(id);
+        if (machine != null) {
+            if (minServiceTime != null && minServiceTime > 0) {
+                machine.setMinServiceTime(minServiceTime);
+            }
+            if (maxServiceTime != null && maxServiceTime > 0) {
+                machine.setMaxServiceTime(maxServiceTime);
+            }
+            if (name != null && !name.trim().isEmpty()) {
+                machine.setName(name.trim());
+            }
+            broadcastState();
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Set the input queue where products enter
      */
     public void setInputQueue(String queueId) {
@@ -338,6 +359,32 @@ public class SimulationService implements Machine.MachineEventListener {
         queueCounter.set(0);
         machineCounter.set(0);
         inputQueueId = null;
+
+        broadcastState();
+    }
+
+    /**
+     * Reset simulation - restart from beginning without clearing configuration
+     * Keeps queues, machines, and connections but clears all products and resets
+     * states
+     */
+    public void resetSimulation() {
+        stopSimulation();
+
+        // Clear all products from queues
+        for (ProductQueue queue : queues.values()) {
+            while (queue.removeProduct() != null) {
+                // Remove all products
+            }
+        }
+
+        // Reset machine states (clears all counters and product state)
+        for (Machine machine : machines.values()) {
+            machine.reset();
+        }
+
+        // Clear snapshot history
+        snapshotManager.clearHistory();
 
         broadcastState();
     }
@@ -598,52 +645,212 @@ public class SimulationService implements Machine.MachineEventListener {
 
     /**
      * Load a complex example configuration
-     * Creates: Input Queue -> 2 Machines in parallel -> 2 Queues -> 2 Machines ->
-     * Output Queue
+     * Creates a 4-stage parallel assembly line:
+     * Queue0 (Input) -> M1, M0 -> Q1, Q2 -> M2, M3 -> Q4, Q3 -> M4, M5 -> Q5, Q6 ->
+     * M6 -> Q7 (Output)
      */
     public void loadExample() {
         // Clear existing
         clearBoard();
 
-        // Create Input Queue (Q0)
-        ProductQueue inputQ = createQueue("Input", 50, 200);
+        // === Stage 0: Input Queue ===
+        ProductQueue q0 = createQueue("Queue 0", 30, 250); // INPUT
 
-        // Create first stage machines (M0, M1)
-        Machine m0 = createMachine("Machine A", 220, 100, 800, 2000);
-        Machine m1 = createMachine("Machine B", 220, 300, 1000, 2500);
+        // === Stage 1: First parallel machines ===
+        Machine m1 = createMachine("Machine 1", 120, 80, 800, 2000);
+        Machine m0 = createMachine("Machine 0", 120, 420, 1000, 2500);
 
-        // Create intermediate queues (Q1, Q2)
-        ProductQueue q1 = createQueue("Stage 2A", 420, 100);
-        ProductQueue q2 = createQueue("Stage 2B", 420, 300);
+        // === Stage 1 Output Queues ===
+        ProductQueue q1 = createQueue("Queue 1", 230, 140);
+        ProductQueue q2 = createQueue("Queue 2", 230, 320);
 
-        // Create second stage machines (M2, M3)
-        Machine m2 = createMachine("Machine C", 590, 100, 600, 1500);
-        Machine m3 = createMachine("Machine D", 590, 300, 900, 2000);
+        // === Stage 2: Second parallel machines ===
+        Machine m2 = createMachine("Machine 2", 320, 80, 600, 1500);
+        Machine m3 = createMachine("Machine 3", 320, 420, 900, 2000);
 
-        // Create output queue (Q3)
-        ProductQueue outputQ = createQueue("Output", 760, 200);
+        // === Stage 2 Output Queues ===
+        ProductQueue q4 = createQueue("Queue 4", 430, 140);
+        ProductQueue q3 = createQueue("Queue 3", 430, 320);
 
-        // Create connections
-        // Input -> M0, M1
-        createConnection(inputQ.getId(), m0.getId(), "queue-to-machine");
-        createConnection(inputQ.getId(), m1.getId(), "queue-to-machine");
+        // === Stage 3: Third parallel machines ===
+        Machine m4 = createMachine("Machine 4", 530, 80, 700, 1800);
+        Machine m5 = createMachine("Machine 5", 530, 380, 800, 2200);
 
-        // M0 -> Q1, M1 -> Q2
-        createConnection(m0.getId(), q1.getId(), "machine-to-queue");
-        createConnection(m1.getId(), q2.getId(), "machine-to-queue");
+        // === Stage 3 Output Queues ===
+        ProductQueue q5 = createQueue("Queue 5", 640, 140);
+        ProductQueue q6 = createQueue("Queue 6", 640, 320);
+
+        // === Stage 4: Final merge machine ===
+        Machine m6 = createMachine("Machine 6", 750, 200, 600, 1500);
+
+        // === Output Queue ===
+        ProductQueue q7 = createQueue("Queue 7", 870, 200);
+
+        // === Create all connections ===
+
+        // Input -> M1 and M0
+        createConnection(q0.getId(), m1.getId(), "queue-to-machine");
+        createConnection(q0.getId(), m0.getId(), "queue-to-machine");
+
+        // M1 -> Q1, M0 -> Q2
+        createConnection(m1.getId(), q1.getId(), "machine-to-queue");
+        createConnection(m0.getId(), q2.getId(), "machine-to-queue");
 
         // Q1 -> M2, Q2 -> M3
         createConnection(q1.getId(), m2.getId(), "queue-to-machine");
         createConnection(q2.getId(), m3.getId(), "queue-to-machine");
 
-        // M2 -> Output, M3 -> Output
-        createConnection(m2.getId(), outputQ.getId(), "machine-to-queue");
-        createConnection(m3.getId(), outputQ.getId(), "machine-to-queue");
+        // M2 -> Q4, M3 -> Q3
+        createConnection(m2.getId(), q4.getId(), "machine-to-queue");
+        createConnection(m3.getId(), q3.getId(), "machine-to-queue");
+
+        // Q4 -> M4, Q4 -> M5 (shared), Q3 -> M5
+        createConnection(q4.getId(), m4.getId(), "queue-to-machine");
+        createConnection(q4.getId(), m5.getId(), "queue-to-machine");
+        createConnection(q3.getId(), m5.getId(), "queue-to-machine");
+
+        // M4 -> Q5, M5 -> Q6
+        createConnection(m4.getId(), q5.getId(), "machine-to-queue");
+        createConnection(m5.getId(), q6.getId(), "machine-to-queue");
+
+        // Q5 -> M6, Q6 -> M6 (merge)
+        createConnection(q5.getId(), m6.getId(), "queue-to-machine");
+        createConnection(q6.getId(), m6.getId(), "queue-to-machine");
+
+        // M6 -> Q7 (Output)
+        createConnection(m6.getId(), q7.getId(), "machine-to-queue");
 
         // Set input queue
-        setInputQueue(inputQ.getId());
+        setInputQueue(q0.getId());
 
         broadcastState();
+    }
+
+    /**
+     * Export current configuration as a Map
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> exportConfiguration() {
+        Map<String, Object> config = new HashMap<>();
+
+        // Export queues
+        List<Map<String, Object>> queueList = new ArrayList<>();
+        for (ProductQueue queue : queues.values()) {
+            Map<String, Object> queueMap = new HashMap<>();
+            queueMap.put("id", queue.getId());
+            queueMap.put("name", queue.getName());
+            queueMap.put("x", queue.getX());
+            queueMap.put("y", queue.getY());
+            queueList.add(queueMap);
+        }
+        config.put("queues", queueList);
+
+        // Export machines
+        List<Map<String, Object>> machineList = new ArrayList<>();
+        for (Machine machine : machines.values()) {
+            Map<String, Object> machineMap = new HashMap<>();
+            machineMap.put("id", machine.getId());
+            machineMap.put("name", machine.getName());
+            machineMap.put("x", machine.getX());
+            machineMap.put("y", machine.getY());
+            machineMap.put("minServiceTime", machine.getMinServiceTime());
+            machineMap.put("maxServiceTime", machine.getMaxServiceTime());
+            machineList.add(machineMap);
+        }
+        config.put("machines", machineList);
+
+        // Export connections
+        List<Map<String, Object>> connectionList = new ArrayList<>();
+        for (Connection connection : connections) {
+            Map<String, Object> connMap = new HashMap<>();
+            connMap.put("fromId", connection.fromId);
+            connMap.put("toId", connection.toId);
+            connMap.put("type", connection.type);
+            connectionList.add(connMap);
+        }
+        config.put("connections", connectionList);
+
+        config.put("inputQueueId", inputQueueId);
+
+        return config;
+    }
+
+    /**
+     * Import configuration from a Map
+     */
+    @SuppressWarnings("unchecked")
+    public boolean importConfiguration(Map<String, Object> config) {
+        try {
+            // Clear existing
+            clearBoard();
+
+            // Import queues
+            List<Map<String, Object>> queueList = (List<Map<String, Object>>) config.get("queues");
+            Map<String, String> queueIdMapping = new HashMap<>();
+
+            if (queueList != null) {
+                for (Map<String, Object> queueMap : queueList) {
+                    String oldId = (String) queueMap.get("id");
+                    String name = (String) queueMap.get("name");
+                    double x = ((Number) queueMap.get("x")).doubleValue();
+                    double y = ((Number) queueMap.get("y")).doubleValue();
+
+                    ProductQueue queue = createQueue(name, x, y);
+                    queueIdMapping.put(oldId, queue.getId());
+                }
+            }
+
+            // Import machines
+            List<Map<String, Object>> machineList = (List<Map<String, Object>>) config.get("machines");
+            Map<String, String> machineIdMapping = new HashMap<>();
+
+            if (machineList != null) {
+                for (Map<String, Object> machineMap : machineList) {
+                    String oldId = (String) machineMap.get("id");
+                    String name = (String) machineMap.get("name");
+                    double x = ((Number) machineMap.get("x")).doubleValue();
+                    double y = ((Number) machineMap.get("y")).doubleValue();
+                    int minServiceTime = ((Number) machineMap.get("minServiceTime")).intValue();
+                    int maxServiceTime = ((Number) machineMap.get("maxServiceTime")).intValue();
+
+                    Machine machine = createMachine(name, x, y, minServiceTime, maxServiceTime);
+                    machineIdMapping.put(oldId, machine.getId());
+                }
+            }
+
+            // Import connections
+            List<Map<String, Object>> connectionList = (List<Map<String, Object>>) config.get("connections");
+            if (connectionList != null) {
+                for (Map<String, Object> connMap : connectionList) {
+                    String oldFromId = (String) connMap.get("fromId");
+                    String oldToId = (String) connMap.get("toId");
+                    String type = (String) connMap.get("type");
+
+                    // Map old IDs to new IDs
+                    String newFromId = queueIdMapping.getOrDefault(oldFromId, machineIdMapping.get(oldFromId));
+                    String newToId = queueIdMapping.getOrDefault(oldToId, machineIdMapping.get(oldToId));
+
+                    if (newFromId != null && newToId != null) {
+                        createConnection(newFromId, newToId, type);
+                    }
+                }
+            }
+
+            // Set input queue
+            String oldInputQueueId = (String) config.get("inputQueueId");
+            if (oldInputQueueId != null) {
+                String newInputQueueId = queueIdMapping.get(oldInputQueueId);
+                if (newInputQueueId != null) {
+                    setInputQueue(newInputQueueId);
+                }
+            }
+
+            broadcastState();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /**

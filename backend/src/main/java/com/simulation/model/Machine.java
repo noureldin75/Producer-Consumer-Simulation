@@ -75,6 +75,23 @@ public class Machine implements QueueObserver, Serializable, Cloneable {
     }
 
     /**
+     * Reset machine state for simulation restart
+     * Clears all counters and current product
+     */
+    public void reset() {
+        initTransient();
+        this.productsProcessed = 0;
+        this.totalProcessingTime = 0;
+        this.currentProduct = null;
+        this.currentColor = DEFAULT_COLOR;
+        this.flashing = false;
+        if (processing != null)
+            processing.set(false);
+        if (ready != null)
+            ready.set(true);
+    }
+
+    /**
      * Set the event listener for machine state changes
      */
     public void setEventListener(MachineEventListener listener) {

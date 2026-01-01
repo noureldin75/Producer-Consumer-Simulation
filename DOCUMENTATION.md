@@ -826,16 +826,179 @@ SimulationService
 
 ---
 
+## 7. Additional Features (Enhanced Version)
+
+### 7.1 Toast Notifications
+
+**Purpose**: User-friendly feedback for all operations with auto-dismiss.
+
+**Components**:
+- `ToastService` (`services/toast.service.ts`) - Manages toast state
+- `ToastContainerComponent` (`components/toast/toast.component.ts`) - Displays toasts
+
+**Types**:
+| Type | Icon | Color | Usage |
+|------|------|-------|-------|
+| Success | ✓ | Green | Operation completed successfully |
+| Error | ✕ | Red | API errors, validation failures |
+| Warning | ⚠ | Amber | Connection lost, potential issues |
+| Info | ℹ | Blue | Simulation state changes |
+
+**Usage**:
+```typescript
+this.toastService.success('Machine created');
+this.toastService.error('Failed to connect');
+this.toastService.warning('Connection lost');
+this.toastService.info('Simulation started');
+```
+
+---
+
+### 7.2 Machine Service Time Editor
+
+**Purpose**: Edit machine settings (service times, name) via double-click.
+
+**Component**: `MachineEditorComponent` (`components/machine-editor/machine-editor.component.ts`)
+
+**Features**:
+- Modal dialog with dark theme
+- Input validation (100-60000ms range)
+- Name editing
+- Products processed display
+
+**Backend Endpoint**:
+```http
+PUT /api/simulation/machines/{id}/settings
+Content-Type: application/json
+
+{
+    "name": "Fast Machine",
+    "minServiceTime": 500,
+    "maxServiceTime": 1500
+}
+```
+
+---
+
+### 7.3 Save/Load Configurations
+
+**Purpose**: Export and import simulation configurations as JSON files.
+
+**Backend Endpoints**:
+```http
+GET /api/simulation/export
+# Returns: { queues: [...], machines: [...], connections: [...], inputQueueId: "..." }
+
+POST /api/simulation/import
+Content-Type: application/json
+# Body: Same format as export
+```
+
+**Frontend**:
+- **Save Config** button downloads JSON file
+- **Load Config** button opens file picker (accepts .json)
+
+**Features**:
+- Preserves all positions, connections, and settings
+- Automatically maps old IDs to new IDs on import
+- Clears board before importing
+
+---
+
+### 7.4 Queue Capacity Limits
+
+**Purpose**: Limit how many products a queue can hold.
+
+**Backend Changes**:
+- `ProductQueue.maxCapacity` - Maximum products (0 = unlimited)
+- `ProductQueue.isFull()` - Returns true if at capacity
+- `addProduct()` returns false when queue is full
+
+**State Fields**:
+```java
+public static class QueueState {
+    public int maxCapacity;    // 0 = unlimited
+    public boolean isFull;     // True if at capacity
+}
+```
+
+---
+
+### 7.5 Enhanced Machine State
+
+**New Fields in MachineState**:
+```java
+public int minServiceTime;     // Processing time range
+public int maxServiceTime;     // For frontend display
+```
+
+---
+
+## 8. User Guide
+
+### 8.1 Getting Started
+
+1. **Start Backend**: 
+   ```bash
+   cd backend
+   ./mvnw spring-boot:run
+   ```
+
+2. **Start Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   ng serve
+   ```
+
+3. **Open Browser**: Navigate to `http://localhost:4200`
+
+### 8.2 Building a Simulation
+
+| Step | Action | Description |
+|------|--------|-------------|
+| 1 | Click **Load Example** | Creates a demo assembly line |
+| 2 | Or click **Add Queue** | Adds a new queue to the board |
+| 3 | Click **Add Machine** | Adds a new machine |
+| 4 | Enable **Connect Nodes** | Enter connection mode |
+| 5 | Click connection points | Link queues and machines |
+| 6 | Click **Start** | Begin simulation |
+
+### 8.3 Editing Components
+
+| Action | How To | Result |
+|--------|--------|--------|
+| Move nodes | Drag when stopped | Repositions on board |
+| Edit machine | Double-click machine | Opens settings modal |
+| Set input queue | Double-click queue | Marks as product source |
+| Delete node | Select + Delete key | Removes with connections |
+
+### 8.4 Save/Load Configurations
+
+1. **Save**: Click **Save Config** → JSON file downloads
+2. **Load**: Click **Load Config** → Select JSON file → Configuration restored
+
+### 8.5 Replay Mode
+
+1. Run simulation to record snapshots
+2. Click **Stop** to end simulation
+3. Click **Replay** to watch recorded session
+4. Progress bar shows replay position
+
+---
+
 ## Summary
 
 This project demonstrates a complete full-stack simulation application with:
 
 1. **Backend** (Spring Boot):
-   - RESTful API with 15+ endpoints
+   - RESTful API with 18+ endpoints
    - Server-Sent Events for real-time updates
    - Three design patterns: Observer, Concurrency, Memento
    - Thread-safe concurrent data structures
    - Clean separation of concerns (Controller → Service → Model)
+   - Save/Load configuration functionality
+   - Machine settings API
 
 2. **Frontend** (Angular):
    - Modern standalone components
@@ -843,13 +1006,24 @@ This project demonstrates a complete full-stack simulation application with:
    - SVG-based connection visualization
    - Responsive dark-themed UI
    - Real-time SSE consumption with auto-reconnect
+   - Toast notification system
+   - Machine editor modal
+   - Save/Load configuration UI
 
 3. **Design Patterns**:
    - **Observer**: Queue-Machine notification system
    - **Concurrency**: Multi-threaded product processing
    - **Snapshot/Memento**: Simulation state recording and replay
 
+4. **Enhanced Features**:
+   - Toast notifications for all operations
+   - Double-click machine editing
+   - Configuration save/load as JSON
+   - Queue capacity limits
+   - Input validation
+
 ---
 
 *Documentation generated for CSE 223 Programming 2 Assignment*
 *Alexandria University - Faculty of Engineering*
+

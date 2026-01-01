@@ -127,6 +127,22 @@ public class SimulationController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/machines/{id}/settings")
+    public ResponseEntity<Map<String, Object>> updateMachineSettings(
+            @PathVariable String id,
+            @RequestBody Map<String, Object> settings) {
+        Integer minServiceTime = (Integer) settings.get("minServiceTime");
+        Integer maxServiceTime = (Integer) settings.get("maxServiceTime");
+        String name = (String) settings.get("name");
+
+        boolean updated = simulationService.updateMachineSettings(id, minServiceTime, maxServiceTime, name);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", updated);
+
+        return ResponseEntity.ok(response);
+    }
+
     // ==================== Connection Operations ====================
 
     @PostMapping("/connections")
@@ -181,6 +197,16 @@ public class SimulationController {
     @PostMapping("/clear")
     public ResponseEntity<Map<String, Object>> clearBoard() {
         simulationService.clearBoard();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset")
+    public ResponseEntity<Map<String, Object>> resetSimulation() {
+        simulationService.resetSimulation();
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -247,5 +273,23 @@ public class SimulationController {
         return Flux.concat(initialState, updates)
                 .onBackpressureLatest()
                 .delayElements(Duration.ofMillis(50)); // Throttle to prevent flooding
+    }
+
+    // ==================== Save/Load Configuration ====================
+
+    @GetMapping("/export")
+    public ResponseEntity<Map<String, Object>> exportConfiguration() {
+        Map<String, Object> config = simulationService.exportConfiguration();
+        return ResponseEntity.ok(config);
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<Map<String, Object>> importConfiguration(@RequestBody Map<String, Object> config) {
+        boolean success = simulationService.importConfiguration(config);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+
+        return ResponseEntity.ok(response);
     }
 }

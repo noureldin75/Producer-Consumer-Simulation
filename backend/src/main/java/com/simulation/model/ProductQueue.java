@@ -24,6 +24,9 @@ public class ProductQueue implements QueueSubject, Serializable, Cloneable {
     private double x;
     private double y;
 
+    // Maximum capacity (0 or negative means unlimited)
+    private int maxCapacity = 0;
+
     // Observer pattern: list of machines observing this queue
     private transient List<QueueObserver> observers;
     // Ready machines waiting for products
@@ -43,12 +46,27 @@ public class ProductQueue implements QueueSubject, Serializable, Cloneable {
         this.outputMachineIds = new ArrayList<>();
         this.x = 0;
         this.y = 0;
+        this.maxCapacity = 0; // Unlimited by default
+    }
+
+    /**
+     * Check if queue is full (has max capacity and is at limit)
+     */
+    public boolean isFull() {
+        return maxCapacity > 0 && products.size() >= maxCapacity;
     }
 
     /**
      * Add a product to the queue
+     * 
+     * @return true if product was added, false if queue is full
      */
-    public synchronized void addProduct(Product product) {
+    public synchronized boolean addProduct(Product product) {
+        // Check capacity before adding
+        if (isFull()) {
+            return false;
+        }
+
         product.setCurrentLocation(this.id);
         products.add(product);
 
@@ -59,6 +77,7 @@ public class ProductQueue implements QueueSubject, Serializable, Cloneable {
                 readyMachine.onProductAvailable(this.id);
             }
         }
+        return true;
     }
 
     /**
@@ -199,11 +218,20 @@ public class ProductQueue implements QueueSubject, Serializable, Cloneable {
         return new ArrayList<>(products);
     }
 
+    public int getMaxCapacity() {
+        return maxCapacity;
+    }
+
+    public void setMaxCapacity(int maxCapacity) {
+        this.maxCapacity = maxCapacity;
+    }
+
     @Override
     public ProductQueue clone() {
         ProductQueue clone = new ProductQueue(this.id, this.name);
         clone.x = this.x;
         clone.y = this.y;
+        clone.maxCapacity = this.maxCapacity;
         clone.inputMachineIds = new ArrayList<>(this.inputMachineIds);
         clone.outputMachineIds = new ArrayList<>(this.outputMachineIds);
         for (Product p : this.products) {
@@ -214,6 +242,7 @@ public class ProductQueue implements QueueSubject, Serializable, Cloneable {
 
     @Override
     public String toString() {
-        return "ProductQueue{id='" + id + "', name='" + name + "', size=" + getSize() + "}";
+        return "ProductQueue{id='" + id + "', name='" + name + "', size=" + getSize() + ", maxCapacity=" + maxCapacity
+                + "}";
     }
 }

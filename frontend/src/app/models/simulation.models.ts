@@ -12,6 +12,8 @@ export interface QueueState {
   y: number;
   size: number;
   products: Product[];
+  maxCapacity?: number;
+  isFull?: boolean;
 }
 
 export interface MachineState {
@@ -26,12 +28,30 @@ export interface MachineState {
   outputQueueId: string | null;
   currentProductId: string | null;
   productsProcessed: number;
+  minServiceTime?: number;
+  maxServiceTime?: number;
+  avgProcessingTime?: number;
+  isBottleneck?: boolean;
 }
 
 export interface ConnectionState {
   fromId: string;
   toId: string;
   type: 'queue-to-machine' | 'machine-to-queue';
+}
+
+export interface SimulationStatistics {
+  totalProductsProduced: number;
+  avgThroughput: number;
+  avgQueueWaitTime: number;
+  bottleneckMachineId: string | null;
+  machineStats: { [machineId: string]: MachineStatistics };
+}
+
+export interface MachineStatistics {
+  productsProcessed: number;
+  avgProcessingTime: number;
+  utilization: number;
 }
 
 export interface SimulationState {
@@ -44,12 +64,14 @@ export interface SimulationState {
   totalSnapshots: number;
   timestamp: number;
   inputQueueId: string | null;
+  statistics?: SimulationStatistics;
 }
 
 export interface CreateQueueRequest {
   name: string;
   x: number;
   y: number;
+  maxCapacity?: number;
 }
 
 export interface CreateMachineRequest {
@@ -58,6 +80,12 @@ export interface CreateMachineRequest {
   y: number;
   minServiceTime: number;
   maxServiceTime: number;
+}
+
+export interface UpdateMachineSettingsRequest {
+  minServiceTime: number;
+  maxServiceTime: number;
+  name?: string;
 }
 
 export interface ConnectionRequest {
@@ -81,3 +109,29 @@ export interface ConnectionMode {
   fromId: string | null;
   fromType: NodeType | null;
 }
+
+// Save/Load configuration types
+export interface QueueConfig {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  maxCapacity?: number;
+}
+
+export interface MachineConfig {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  minServiceTime: number;
+  maxServiceTime: number;
+}
+
+export interface SimulationConfig {
+  queues: QueueConfig[];
+  machines: MachineConfig[];
+  connections: ConnectionState[];
+  inputQueueId: string | null;
+}
+
